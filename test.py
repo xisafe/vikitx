@@ -7,10 +7,10 @@
 """
 
 import unittest
+import time
 
 from vikitx.core.session import Session, SessionManager
-#from vikitx.core.workflow import Workflow
-from vikitx.core.channel import TCPChannelREQ, TCPChannelREP
+from vikitx.core.workpool import threadpool
 
 ########################################################################
 class VikitxBasicTest(unittest.TestCase):
@@ -34,23 +34,29 @@ class VikitxBasicTest(unittest.TestCase):
         self.assertIsInstance(manager.get('testsessionid'), Session)
         
     #----------------------------------------------------------------------
-    def test_2_channel(self):
+    def test_2_workpool(self):
         """"""
-        channel2 = TCPChannelREP(port='4443', id='B')
-        channel1 = TCPChannelREQ(addr='tcp://127.0.0.1:4443', id='A')
-        channel1.send(to='B', msg='testmessage')
-        self.assertEqual(channel2.recv()[0], 'B')
-
+        def test(i):
+            print('execute onece: {}'.format(i))
+            return i
+            
+        def cb(re):
+            print(re)
+            
+        def gcb(t, re):
+            print('g:{}:{}'.format(t, re))
+            
+        threadpool.regist_global_result_callback(gcb)
         
-        channel3 = TCPChannelREQ(addr='tcp://127.0.0.1:4443', id='C')
-        channel3.send(to='B', msg='testest')
-    
+        for i in range(100):
+            threadpool.feed(test, args=(i,), enable_global_result_callback=True)
+            
+        for i in range(100):
+            threadpool.feed(test, args=(i,), callback=cb, enable_global_result_callback=False)  
         
-        channel2.send('dsfsdf')
-        channel2.send('dsfsdf')
         
-        print(channel1.recv())
-        print(channel3.recv())    
+        time.sleep(2)
+        threadpool.stop()
     
 
 if __name__ == '__main__':
