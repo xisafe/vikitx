@@ -11,6 +11,7 @@ import time
 
 from vikitx.core.session import Session, SessionManager
 from vikitx.core.workpool import threadpool
+#from vikitx.core import 
 
 ########################################################################
 class VikitxBasicTest(unittest.TestCase):
@@ -56,6 +57,20 @@ class VikitxBasicTest(unittest.TestCase):
         
         
         time.sleep(2)
+    
+    #----------------------------------------------------------------------
+    def test_3_ackpool(self):
+        """"""
+        def send(packet):
+            print('sent packet')
+            
+        
+        
+    
+    #----------------------------------------------------------------------
+    def test_zzzz_shutdown(self):
+        """"""
+        
         threadpool.stop()
     
 
