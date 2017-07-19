@@ -31,18 +31,28 @@ class AckTask(object):
         self._cb = callback
         self._vs = args
         self._kw = kw
+        
+        #
+        # packet
+        #
+        self.packet = args[0]
     
     #----------------------------------------------------------------------
     def next(self):
         """"""
+        
         if self.timeout:
             return 
         
         self._next_ts = self._next_ts + self._interval
-        
+        print('now:{} next:{}'.format(time.time(), self.next_time))
         if self._next_ts > self._final_ts:
             self._timeout_flag = True
-        
+    
+    @property
+    def first_time(self):
+        """"""
+        return self._start_ts
         
     @property
     def next_time(self):
@@ -64,10 +74,12 @@ class AckTask(object):
         """"""
         if self.timeout:
             return
-
-        self.just_execute()
         
         self.next()
+        
+        self.just_execute()
+        
+        
     
     #----------------------------------------------------------------------
     def just_execute(self):
@@ -86,7 +98,7 @@ class AckTask(object):
     def reset(self):
         """"""
         self._start_ts = time.time()
-        self._next_ts = self._next_ts
+        self._next_ts = self._start_ts
         self._final_ts = self._start_ts + self._interval * self._count
         
         self.next()

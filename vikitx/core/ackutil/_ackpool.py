@@ -37,23 +37,25 @@ class Ackpool(object):
         # filter task
         #
         def peek_tasks(task):
-            if time.time() <= task.next_time:
+            if time.time() >= task.next_time:
                 return True
             else:
                 return False
         
         while self._working_flag:
+            
             for _task in filter(peek_tasks, self._tasks.values()):
-                
                 #
                 # handle timeout
                 #
                 if _task.timeout:
                     del self._tasks[_task.id]
+                    
+                    self._timeout_callback(_task.packet,\
+                                           (_task.first_time, _task.final_time))
                     continue
                 
-                threadpool.feed(_task.execute, 
-                                enable_global_result_callback=False)
+                _task.execute()
         
     #----------------------------------------------------------------------
     def regist_send_callback(self, callback):
@@ -75,10 +77,10 @@ class Ackpool(object):
     #----------------------------------------------------------------------
     def add(self, token, packet, interval=5, count=3):
         """"""
-        new_task = AckTask(id, self._common_callback, args=(packet, ),
+        new_task = AckTask(token, self._common_callback, args=(packet, ),
                            loop_interval=interval, count=count)
         
-        self._tasks[id] = new_task
+        self._tasks[new_task.id] = new_task
     
     #----------------------------------------------------------------------
     def ack(self, token):
