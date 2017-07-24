@@ -53,7 +53,6 @@ class Clock(object):
                 # looping call
                 #
                 if _itv is not None:
-                    print('Update interval:{}'.format(_itv))
                     self._tasks[_id]['time'] = _ts + _itv
             
             return _flag

@@ -14,6 +14,7 @@ import time
 from . import context, logger
 from ..interfaces import ClientIf
 from . import _packet as packet
+from .. import task
 
 STATE_INIT = 'init'
 STATE_SHAKE_HAND_STARTING = 'shake_hand_starting'
@@ -90,6 +91,17 @@ class ZSRPSClient(ClientIf):
             return 'tcp://{}:{}'.format(self._host, self._rep_port)
         else:
             return 
+    
+    @property
+    def heartbeat(self):
+        """"""
+        _hb = packet.Hearbeat(self.id)
+        
+        #
+        # update heartbeat info
+        #
+        
+        return _hb
     
     #
     # basic op
@@ -183,13 +195,12 @@ class ZSRPSClient(ClientIf):
         self._server_info['id'] = negrsp.id 
         
         # shudown req
-        self._sock_req_to_server.disconnect()
         del self._sock_req_to_server
         
         #
-        # starting the heartbeat fast
+        # starting the heartbeat fast (interval 1)
         #
-        self.start_heartbeat(3)
+        self.start_heartbeat(1)
         
         #
         # shaking hand mainloop
@@ -206,15 +217,39 @@ class ZSRPSClient(ClientIf):
                 break
         
         self.state = STATE_SHAKE_HAND_FINISHED
+        
+        self.start_heartbeat(5)
     
     #----------------------------------------------------------------------
-    def start_heartbeat(self, interval):
+    def start_heartbeat(self, interval=None):
         """"""
+        if not hasattr(self, '_loopingcall_heartbeat'):
+            self._loopingcall_heartbeat = task.LoopingCall(self.send_heartbeat)
+        
+        #
+        # restart and start
+        #
+        if interval:
+            if self._loopingcall_heartbeat.running:
+                self._loopingcall_heartbeat.stop()
+                
+            self._loopingcall_heartbeat.start(interval)
+        else:
+            self._loopingcall_heartbeat.stop()
+    
+    #----------------------------------------------------------------------
+    def send_heartbeat(self):
+        """"""
+        self._sock_pub_to_server.send_pyobj(self.heartbeat)
         
     
     #----------------------------------------------------------------------
     def stop_heartbeat(self):
         """"""
+        if hasattr(self, '_loopingcall_heartbeat'):
+            return self.__loopingcall_heartbeat.stop()
+        else:
+            pass
         
         
     

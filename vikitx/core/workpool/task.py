@@ -96,6 +96,10 @@ class LoopingCall(object):
     def start(self, interval, first=True):
         """"""
         _time = time.time()
+        
+        if self.running:
+            raise Exception('this task:{} is running!'.format(self._id))
+        
         self._id = str(uuid.uuid1())
         clock.regist_task(self._id,
                           _time,
@@ -113,6 +117,13 @@ class LoopingCall(object):
     def cancel(self):
         """"""
         clock.cancel_task(self.id)
+        
+        del self._id
+    
+    @property    
+    def running(self):
+        """"""
+        return hasattr(self, '_id')
         
         
     

@@ -33,7 +33,7 @@ class ZSRPSPacketIf(object):
     @id.setter
     def id(self, value):
         """"""
-        self._client_id = value
+        self._id = value
     
 
 ########################################################################
@@ -45,6 +45,9 @@ class DataBase(ZSRPSPacketIf):
     """"""
 
 
+#
+# shake hands
+#
 ########################################################################
 class Negotiation(SignalBase):
     """"""
@@ -60,14 +63,37 @@ class Negotiation(SignalBase):
 class NegotiationResponse(SignalBase):
     """"""
 
-    #----------------------------------------------------------------------
-    def __init__(self):
-        """Constructor"""
+#
+# heartbeat
+#
+########################################################################
+class Hearbeat(SignalBase):
+    """"""
 
+    #----------------------------------------------------------------------
+    def __init__(self, client_id):
+        """Constructor"""
+        self._id = client_id
+        
+    @property
+    def id(self):
+        """"""
+        return self._id
+        
+    
+    
+
+#
+# pair to pair
+#
 ########################################################################
 class Established(SignalBase):
     """"""
     pass
+
+#
+# 
+#
         
         
     

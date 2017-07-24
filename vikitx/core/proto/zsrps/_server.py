@@ -11,6 +11,7 @@ import time
 
 from . import context
 from . import _packet as packet
+from . import logger
 
 from ..interfaces import ServerIf
 
@@ -121,6 +122,7 @@ class ZSRPSServer(ServerIf):
         #
         self._poller = zmq.Poller()
         self._poller.register(self._sock_rep_to_client, flags=zmq.POLLIN)
+        self._poller.register(self._sock_sub_to_clients, flags=zmq.POLLIN)
     
     
     #----------------------------------------------------------------------
@@ -129,6 +131,7 @@ class ZSRPSServer(ServerIf):
         #
         # main loop
         #
+        logger.info('server enter main loop')
         while self.state == STATE_WORKING:
             #
             # poller
@@ -158,12 +161,15 @@ class ZSRPSServer(ServerIf):
         _tmp['scope'] = {}
         _tmp['active_time'] = time.time()
         
+        logger.info('received a negotiation packet from:{}'.format(neg.id))
         #
         # send negtiation response
         #
         negrsp = packet.NegotiationResponse()
         negrsp.id = neg.id
         sock.send_pyobj(negrsp)
+        logger.info('send a negotiation response to:{}'.format(neg.id))
+        
     
     #----------------------------------------------------------------------
     def __update_client(self, client_id):
@@ -178,3 +184,10 @@ class ZSRPSServer(ServerIf):
         client = self._clients.get(client_id)
         if client:
             client['scope'][key] = value
+    
+    #----------------------------------------------------------------------
+    def __handle_heartbeat(self, sock):
+        """"""
+        _hb = sock.recv_pyobj()
+        logger.debug('Received a hearbeat from: {}'.format(_hb.id))
+        
