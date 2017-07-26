@@ -9,10 +9,15 @@
 import zmq
 import time
 
+from . import _workflows as workflow
+from ._workflows import ZSRPSWorkflow
+
 from . import context
 from . import _packet as packet
 from . import logger
+from . import _keywords
 
+from .. import threadpool
 from ..interfaces import ServerIf
 
 STATE_INIT = 'init'
@@ -147,43 +152,47 @@ class ZSRPSServer(ServerIf):
         """"""
         neg = sock.recv_pyobj()
         
+        assert isinstance(neg, packet.Negotiation)
+        
+        
         if not self._clients.has_key(neg.id):
-            _tmp = self._clients[neg.id] = {}
+            pass
         else:
+            _wf = self._clients.get(neg.id)
+            padr = _wf.get_env(_keywords.PUB_ADDR)
+            self._sock_sub_to_clients.disconnect(padr)
             del self._clients[neg.id]
-            _tmp = self._clients[neg.id] = {}
             
-        _tmp['id'] = neg.id
-        _tmp['negtiation_lease'] = neg.negtiation_lease
-        _tmp['pub_addr'] = neg.pub_addr
-        self._sock_sub_to_clients.connect(neg.pub_addr)
-        _tmp['rep_addr'] = neg.rep_addr
-        _tmp['scope'] = {}
-        _tmp['active_time'] = time.time()
+        logger.debug('building client workflow')
+        _wf = ZSRPSWorkflow(neg.id, self)
+        self._clients[neg.id] = _wf        
         
-        logger.info('received a negotiation packet from:{}'.format(neg.id))
-        #
-        # send negtiation response
-        #
-        negrsp = packet.NegotiationResponse()
-        negrsp.id = neg.id
-        sock.send_pyobj(negrsp)
-        logger.info('send a negotiation response to:{}'.format(neg.id))
+        _wf = self._clients.get(neg.id)
         
-    
-    #----------------------------------------------------------------------
-    def __update_client(self, client_id):
-        """Input client_id and update the client active_time"""
-        client = self._clients.get(client_id)
-        if client:
-            client['active_time'] = time.time()
-    
-    #----------------------------------------------------------------------
-    def __update_client_scope(self, client_id, key, value):
-        """"""
-        client = self._clients.get(client_id)
-        if client:
-            client['scope'][key] = value
+        #
+        # handle packet
+        #
+        logger.debug('handling negotiation request! from: {}'.format(neg.id))
+        _wf.handle_packet(neg)
+        
+        if _wf.state == workflow.state_SHAKEHAND:
+            pubaddr = _wf.get_env(_keywords.PUB_ADDR)
+            self._sock_sub_to_clients.connect(pubaddr)
+            
+            #
+            # response
+            #
+            logger.debug('response negotiation request')
+            negrsp = packet.NegotiationResponse()
+            negrsp.id = neg.id
+            sock.send_pyobj(negrsp)
+        else:
+            #
+            # negotiation failed
+            #
+            logger.debug('negotiation handle error!')
+            del self._clients[neg.id]
+            sock.send_pyobj(packet.Reset())
     
     #----------------------------------------------------------------------
     def __handle_heartbeat(self, sock):
@@ -191,3 +200,8 @@ class ZSRPSServer(ServerIf):
         _hb = sock.recv_pyobj()
         logger.debug('Received a hearbeat from: {}'.format(_hb.id))
         
+        wkfw = self._clients.get(_hb.id)
+        print(wkfw)
+        assert isinstance(wkfw, ZSRPSWorkflow)
+        
+        wkfw.handle_packet(_hb)

@@ -136,7 +136,7 @@ class ThreadPool(PoolBase):
     
     #----------------------------------------------------------------------
     def feed(self, target, args=(), keywords={}, callback=None,
-             task_id=None, new_labor=False, enable_global_result_callback=True):
+             task_id=None, new_labor=False, enable_global_result_callback=False):
         """"""
         task_id = str(uuid.uuid1())
         if self.state == STATE_RUNNING:

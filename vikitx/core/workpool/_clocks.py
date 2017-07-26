@@ -44,8 +44,16 @@ class Clock(object):
     def __looping(self):
         """"""
         def _peek_task(_id):
-            _ts = self._tasks[_id].get('time')
-            _itv = self._tasks[_id].get('interval')
+            if self._tasks.has_key(_id):
+                pass
+            else:
+                return False
+            
+            try:
+                _ts = self._tasks[_id].get('time')
+                _itv = self._tasks[_id].get('interval')
+            except KeyError as e:
+                return False
             
             _flag = self.now > _ts
             if _flag:
@@ -53,7 +61,10 @@ class Clock(object):
                 # looping call
                 #
                 if _itv is not None:
-                    self._tasks[_id]['time'] = _ts + _itv
+                    try:
+                        self._tasks[_id]['time'] = _ts + _itv
+                    except KeyError:
+                        return False
             
             return _flag
                 

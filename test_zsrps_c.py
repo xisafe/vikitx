@@ -7,6 +7,7 @@
 """
 
 import unittest
+import time
 
 from vikitx.core.proto import zsrps
 
@@ -17,11 +18,16 @@ class ZSRPSTester(unittest.TestCase):
     #----------------------------------------------------------------------
     def test_2_start_client(self):
         """"""
-        clt = zsrps.ZSRPSClient('client', '127.0.0.1')
-        clt.connect('127.0.0.1', port=7000)
+        self.clt = zsrps.ZSRPSClient('client', '127.0.0.1')
+        self.clt.connect('127.0.0.1', port=7000)
         
-        while clt.state != 'working':
+        while self.clt.state != 'working':
             pass
+    
+        time.sleep(10)
+        self.clt.stop()
+        time.sleep(20)
+        
 
 if __name__ == '__main__':
     unittest.main()

@@ -10,11 +10,13 @@ from __future__ import unicode_literals
 
 import zmq
 import time
+import Queue
 
 from . import context, logger
 from ..interfaces import ClientIf
 from . import _packet as packet
 from .. import task
+from .. import thread_utils
 
 STATE_INIT = 'init'
 STATE_SHAKE_HAND_STARTING = 'shake_hand_starting'
@@ -50,6 +52,11 @@ class ZSRPSClient(ClientIf):
         
         self.__build_zmq_socket()
         
+        #
+        # response cache
+        #
+        self._response_cache_queue = Queue.Queue()
+        
     @property
     def id(self):
         """"""
@@ -63,7 +70,7 @@ class ZSRPSClient(ClientIf):
     @state.setter
     def state(self, value):
         """"""
-        logger.info('[#] ZSRPS State Changed: from {} -> {}'.format(self._state, value))
+        logger.info('ZSRPS State Changed: from {} -> {}'.format(self._state, value))
         #
         # change state and calling callback
         #
@@ -72,7 +79,7 @@ class ZSRPSClient(ClientIf):
         if self.state == STATE_TIMEOUT:
             raise NotImplemented()
         elif self.state == STATE_SHAKE_HAND_FINISHED:
-            self._state = STATE_WORKING
+            pass
     
     @property
     def pub_addr(self):
@@ -154,8 +161,8 @@ class ZSRPSClient(ClientIf):
         #
         # build socket to receive instructions from server
         #
-        self._sock_pair_to_server = context.socket(zmq.PAIR)
-        self._rep_port = self._sock_pair_to_server.bind_to_random_port('tcp://*')
+        self._sock_rep_to_server = context.socket(zmq.REP)
+        self._rep_port = self._sock_rep_to_server.bind_to_random_port('tcp://*')
     
     #----------------------------------------------------------------------
     def __on_receiving_from_server(self):
@@ -187,7 +194,7 @@ class ZSRPSClient(ClientIf):
         negtiation_lease = time.time() + self._timeout
         neg = packet.Negotiation(self.pub_addr, self.rep_addr, negtiation_lease)
         neg.id = self.id
-        logger.info('sending negtiation packet')
+        logger.info('sending negtiation packet! from: {}'.format(neg.id))
         self._sock_req_to_server.send_pyobj(neg)
         negrsp = self._sock_req_to_server.recv_pyobj()
         logger.info('received negtiation response')
@@ -209,10 +216,11 @@ class ZSRPSClient(ClientIf):
             #
             # after receving the heartbeat, server will send a Established Signal
             #
-            if self._sock_pair_to_server.poll(1000) == 0:
+            if not self._sock_rep_to_server.poll(1000):
+                logger.debug('rep server poll interval')
                 continue
             
-            _est = self._sock_pair_to_server.recv_pyobj()
+            _est = self._sock_rep_to_server.recv_pyobj()
             if isinstance(_est, packet.Established):
                 break
         
@@ -247,7 +255,7 @@ class ZSRPSClient(ClientIf):
     def stop_heartbeat(self):
         """"""
         if hasattr(self, '_loopingcall_heartbeat'):
-            return self.__loopingcall_heartbeat.stop()
+            return self._loopingcall_heartbeat.stop()
         else:
             pass
         
@@ -262,13 +270,57 @@ class ZSRPSClient(ClientIf):
         #
         self.__shake_hand()
     
+        self.state = STATE_WORKING
+    
         #
         # 2. main loop
         #
-    
-    
-
-    
+        self.main_loop_thread = thread_utils.start_thread('client-mainloop',
+                                                          True,
+                                                          self.__main_loop)
         
     
+    #----------------------------------------------------------------------
+    def __main_loop(self):
+        """"""
+        while self.state == STATE_WORKING:
+            _flag = self._sock_rep_to_server.poll(0, flags=zmq.POLLIN|zmq.POLLOUT)
+            if not _flag:
+                continue
+            
+            if _flag & zmq.POLLOUT:
+                while self._response_cache_queue.qsize() > 0:
+                    rsp = self._response_cache_queue.get()
+                    self._sock_rep_to_server.send_pyobj(rsp)
+            elif _flag & zmq.POLLIN:
+                datapkt = self._sock_rep_to_server.recv_pyobj()
+                self.handle_packet(datapkt)
+        
+        self.stop_heartbeat()
+        self._sock_pub_to_server.send_pyobj(packet.LastHeartbeat(self.id))
+    
+    #----------------------------------------------------------------------
+    def handle_packet(self, pkt):
+        """If you want to handle packet from server, overide this method
+        
+        Parameters:
+        -----------
+        pkt: core.proto._packet.DataBase
+            the packet you want to handle in this packet
+        
+        """
+        print(data)    
+    
+    #----------------------------------------------------------------------
+    def stop(self):
+        """Stop the client mainloop and shutdown"""
+        self.state = STATE_CLOSING
+        self.join()
+        self.state = STATE_CLOSED
+    
+    
+    #----------------------------------------------------------------------
+    def join(self):
+        """"""
+        self.main_loop_thread.join()
     

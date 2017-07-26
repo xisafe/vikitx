@@ -28,7 +28,7 @@ class ZSRPSPacketIf(object):
     @property
     def id(self):
         """"""
-        pass
+        return self._id
     
     @id.setter
     def id(self, value):
@@ -53,11 +53,11 @@ class Negotiation(SignalBase):
     """"""
 
     #----------------------------------------------------------------------
-    def __init__(self, pub_addr, rep_addr, negtiation_lease):
+    def __init__(self, pub_addr, rep_addr, negotiation_lease):
         """Constructor"""
         self.pub_addr = pub_addr
         self.rep_addr = rep_addr
-        self.negtiation_lease = negtiation_lease
+        self.negotiation_lease = negotiation_lease
 
 ########################################################################
 class NegotiationResponse(SignalBase):
@@ -80,6 +80,9 @@ class Hearbeat(SignalBase):
         """"""
         return self._id
         
+########################################################################
+class LastHeartbeat(Hearbeat):
+    """"""
     
     
 
@@ -91,9 +94,21 @@ class Established(SignalBase):
     """"""
     pass
 
+########################################################################
+class Ack(SignalBase):
+    """"""
+    
+
 #
-# 
+# reset or reject
 #
+########################################################################
+class Reset(SignalBase):
+    """"""
+
+    pass
+    
+    
         
         
     

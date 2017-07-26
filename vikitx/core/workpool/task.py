@@ -86,7 +86,6 @@ class LoopingCall(object):
         
         self.pool = threadpool
     
-    
     #----------------------------------------------------------------------
     def regist_threadpool(self, pool):
         """"""
@@ -116,7 +115,7 @@ class LoopingCall(object):
     #----------------------------------------------------------------------
     def cancel(self):
         """"""
-        clock.cancel_task(self.id)
+        clock.cancel_task(self._id)
         
         del self._id
     
