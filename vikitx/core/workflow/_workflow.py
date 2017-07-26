@@ -8,23 +8,26 @@
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 
+from ._interfaces import StateAble
+
 ########################################################################
-class _WorkflowIf():
+class Workflow(StateAble):
     """"""
+    
+    __metaclass__ = ABCMeta
 
     #----------------------------------------------------------------------
-    def __init__(self, id, channel):
+    def __init__(self):
         """Constructor"""
         
-        
-    @abstractmethod
-    def reset(self):
-        """"""
-        pass
     
-    @abstractmethod
-    def destory(self):
-        """"""
-        pass
-        
     
+    @abstractproperty
+    def START_STATE(self):
+        """Define the initial state"""
+        
+    @abstractproperty
+    def TRANS_TABLE(self):
+        """Define the state transportation table"""
+        
+        
