@@ -197,7 +197,7 @@ class ThreadPool(PoolBase):
             #
             # poll and handle result
             #
-            for i in self._poller.poll(0):
+            for i in self._poller.poll(self.poll_interval):
                 if i[0] is self._pull_error_sock:
                     self.handle_error_for_task(self._pull_error_sock.recv_pyojb())
                 elif i[0] is self._pull_result_sock:
@@ -212,10 +212,14 @@ class ThreadPool(PoolBase):
                     #i = random.choice(_lbs)
                     #if not i.buzy:
                         #i.feed(self._task_queue.get())
-                        
-            
-            
-            #self.shrink()
+
+            #
+            # if task_queue is empty
+            #
+            if self._task_queue.qsize() > 0:
+                pass
+            else:
+                self.shrink()
         
     
     #----------------------------------------------------------------------

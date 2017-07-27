@@ -9,7 +9,8 @@
 import unittest
 import time
 
-from vikitx.entity import Service, ServiceWraperInThread, ServiceNode
+from vikitx.entity import Service, ServiceWraperInThread
+from vikitx.entity import ServiceNode
 
 #----------------------------------------------------------------------
 def test(args, v1=4):
@@ -38,7 +39,7 @@ class ServiceTester(unittest.TestCase):
     #----------------------------------------------------------------------
     def test_2_service_in_thread(self):
         """"""
-        ser = ServiceWraperInThread(id='serviceid', target=test)
+        ser = ServiceWraperInThread(id='serviceidprocess', target=test)
         ser.start()
         for i in range(6):
             ser.execute(task_id="id:{}".format(i) ,args=(i,), kwargs={})
@@ -51,6 +52,7 @@ class ServiceTester(unittest.TestCase):
     def test_2_servicenode_with_service_in_process(self):
         """"""
         ser = ServiceNode(id='servicenodeid')
+        if ser.start_service(id, target=test)
         
     
 

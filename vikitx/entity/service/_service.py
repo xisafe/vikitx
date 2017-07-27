@@ -37,6 +37,7 @@ class _Service(interfaces.ServiceIf, interfaces.ExecuteTaskIf):
         if self.ch_addr:
             self.context = zmq.Context()
             self.ch = self.context.socket(zmq.PAIR)
+            self.ch.connect(comm_addr)
         else:
             self.ch = None
         
