@@ -199,7 +199,10 @@ class ThreadPool(PoolBase):
             #
             for i in self._poller.poll(self.poll_interval):
                 if i[0] is self._pull_error_sock:
-                    self.handle_error_for_task(self._pull_error_sock.recv_pyojb())
+                    tmp = self._pull_error_sock.recv_pyobj()
+                    if self.debug:
+                        print(tmp)
+                    self.handle_error_for_task(tmp)
                 elif i[0] is self._pull_result_sock:
                     self.finish_task(self._pull_result_sock.recv_pyobj())
             
@@ -244,7 +247,7 @@ class ThreadPool(PoolBase):
             
             _r_callback = self._registed_callback.get(task_id)
             if _r_callback:
-                self.feed(_r_callback['callback'], args=(_r,), enable_global_result_callback=False)
+                self.feed(_r_callback['callback'], args=(task_id, _r,), enable_global_result_callback=False)
                 del self._registed_callback[task_id]
                 
                 if _r_callback['enable_global_callback']:

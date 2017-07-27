@@ -52,8 +52,19 @@ class ServiceTester(unittest.TestCase):
     def test_2_servicenode_with_service_in_process(self):
         """"""
         ser = ServiceNode(id='servicenodeid')
-        if ser.start_service(id, target=test)
+        ser.start()
         
+        print('Starting Service')
+        ser.start_service('test', target=test)
+        print('Starting Service Success')
+        
+        for i in range(6):
+            print('Feed Task:{}'.format(i))
+            ser.execute('test', 'testtaskid{}'.format(i), args=(i,))
+            
+        time.sleep(5)
+        print('Stopping ServiceNode')
+        ser.stop()
     
 
 if __name__ == '__main__':

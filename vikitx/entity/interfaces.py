@@ -17,6 +17,7 @@ class EntityIf:
     @abstractproperty
     def id(self):
         """"""
+    
         
     
     
@@ -54,9 +55,6 @@ class ServiceManageIf(object):
     def destory_service(self):
         """"""
     
-    @abstractmethod
-    def sendto(self, service_id, pkt):
-        """"""
 
 ########################################################################
 class ServiceIf(object):

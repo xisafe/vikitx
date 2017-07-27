@@ -42,11 +42,11 @@ class VikitxBasicTest(unittest.TestCase):
             print('execute onece: {}'.format(i))
             return i
             
-        def cb(re):
-            print(re)
+        def cb(t, re):
+            print("custom_callback.............", re)
             
         def gcb(t, re):
-            print('g:{}:{}'.format(t, re))
+            print('global_callback:{}:{}'.format(t, re))
             
         threadpool.regist_global_result_callback(gcb)
         

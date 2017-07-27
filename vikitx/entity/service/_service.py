@@ -9,7 +9,7 @@
 import zmq
 import threading
 import multiprocessing
-from multiprocessing import Queue
+from multiprocessing import Pipe, Queue
 from Queue import Empty
 import time
 
@@ -24,22 +24,39 @@ state_WORKING = 'working'
 state_END = 'end'
 
 ########################################################################
-class _Service(interfaces.ServiceIf, interfaces.ExecuteTaskIf):
+class FakePipe:
     """"""
 
     #----------------------------------------------------------------------
-    def __init__(self, id, target, comm_addr=None):
+    def send(self, *args, **kw):
+        """"""
+    
+    #----------------------------------------------------------------------
+    def recv(self):
+        """"""
+    
+    #----------------------------------------------------------------------
+    def poll(self):
+        """"""
+        return False
+        
+    
+    
+
+########################################################################
+class _Service(interfaces.ServiceIf, interfaces.ExecuteTaskIf, interfaces.EntityIf):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, id, target, task_pipe=None, result_pipe=None):
         """"""
         self._id = id
         self._state = state_INIT
         
-        self.ch_addr = comm_addr
-        if self.ch_addr:
-            self.context = zmq.Context()
-            self.ch = self.context.socket(zmq.PAIR)
-            self.ch.connect(comm_addr)
-        else:
-            self.ch = None
+        self.task_pipe = task_pipe if task_pipe else FakePipe()
+        self.result_pipe = result_pipe if result_pipe else FakePipe()
+        
+        self._consume_result, self._produce_result = Pipe(False)
         
         #
         # setting target
@@ -50,17 +67,22 @@ class _Service(interfaces.ServiceIf, interfaces.ExecuteTaskIf):
         #
         # send buffer
         #
-        self._buffer_queue = Queue()
         self._task_queue = Queue()
-        
+    
+    #----------------------------------------------------------------------
+    def _init_pool(self):
+        """"""
         #
         # set threadpool
         #
-        self.pool = get_new_threadpool("{}-threadpool".format(self._id),
+        pool = get_new_threadpool("{}-threadpool".format(self._id),
                                        min_threads=1,
-                                       max_threads=30)
-        self.pool.regist_global_result_callback(self.result_callback)
-        self.pool.start()
+                                       max_threads=30,
+                                       debug=True)
+        #self.pool.regist_global_result_callback(self.result_callback)
+        pool.start()
+        
+        return pool
     
     @property
     def id(self):
@@ -80,46 +102,32 @@ class _Service(interfaces.ServiceIf, interfaces.ExecuteTaskIf):
     #----------------------------------------------------------------------
     def run(self):
         """"""
+        #
+        # build pool
+        #
+        pool = self._init_pool()
+        
+        #
+        # set working
+        #
         self.state = state_WORKING
+
         #
-        # if self.ch 
-        #   execute with no chennal
+        # entry mainloop
         #
-        print('Prepared to entry main loop')
-        if self.ch:
-            self.__channel_mainloop()
-        else:
-            self.__no_channal_mainloop()
-        
-        if self.ch:
-            del self.ch
-            
-        print('Failed in mainloop')
+        self.__mainloop(pool)    
+
         
     #----------------------------------------------------------------------
-    def __channel_mainloop(self):
+    def __mainloop(self, pool):
         """"""
         while self.state == state_WORKING:
-            #
-            # pick task up
-            #
-            flags = self.ch.poll(0, flags=zmq.POLLIN)
-            if flags & zmq.POLLIN:
-                execute_params = self.ch.recv_pyobj()
-                self.execute(*execute_params)
+
+            if self.task_pipe.poll():
+                _task = self.task_pipe.recv()
+                self.execute(*_task)
             
-            if flags & zmq.POLLOUT:
-                while self._buffer_queue.qsize():
-                    self.ch.send_pyobj(self._buffer_queue.get())
-            
-            self.consume()
-            
-    
-    #----------------------------------------------------------------------
-    def __no_channal_mainloop(self):
-        """"""
-        while self.state == state_WORKING:
-            self.consume()
+            self.consume(pool)
     
     #----------------------------------------------------------------------
     def execute(self, task_id, args=(), kwargs={}):
@@ -127,15 +135,16 @@ class _Service(interfaces.ServiceIf, interfaces.ExecuteTaskIf):
         self._task_queue.put((task_id, args, kwargs))
     
     #----------------------------------------------------------------------
-    def consume(self):
+    def consume(self, pool):
         """"""
         try:
             #
             # feed
             #
             task_id, args, kwargs = self._task_queue.get()
-            self.pool.feed(self.target, args, kwargs, task_id=task_id,
-                           enable_global_result_callback=True)
+            pool.feed(self.target, args, kwargs, task_id=task_id,
+                      callback=self.__result_callback, 
+                      enable_global_result_callback=False)
         except Empty:
             pass
     
@@ -150,10 +159,9 @@ class _Service(interfaces.ServiceIf, interfaces.ExecuteTaskIf):
         self.result_callback(task_id, result)
         
         #
-        # result send back to _buffer_queue (if self.ch)
+        # result send back to servicenode 
         #
-        if self.ch: 
-            self._buffer_queue.put((task_id, result))
+        self.result_pipe.send((task_id, result))
     
     #----------------------------------------------------------------------
     def result_callback(self, task_id, result):
@@ -166,17 +174,20 @@ class _Service(interfaces.ServiceIf, interfaces.ExecuteTaskIf):
         """"""
         self.state = state_END
         
+        
+        
+        
 ########################################################################
 class ServiceWraperInThread(_Service, threading.Thread):
     """"""
 
-    #----------------------------------------------------------------------
-    def __init__(self, id, target, comm_addr=None, daemon=True):
+    def __init__(self, id, target, task_pipe=None, result_pipe=None, daemon=True):
         """Constructor"""
         #
         # init service
         #
-        _Service.__init__(self, id, target, comm_addr)
+        _Service.__init__(self, id, target, task_pipe, result_pipe)
+        
         #
         # init Thread
         #
@@ -190,12 +201,12 @@ class ServiceWraperInProcess(_Service, multiprocessing.Process):
     """"""
 
     #----------------------------------------------------------------------
-    def __init__(self, id, target, comm_addr=None, daemon=True):
+    def __init__(self, id, target, task_pipe=None, result_pipe=None, daemon=True):
         """Constructor"""
         #
         # init service
         #
-        _Service.__init__(self, id, target, comm_addr)
+        _Service.__init__(self, id, target, task_pipe, result_pipe)
         
         #
         # init Process
