@@ -38,6 +38,7 @@ class VikitxBasicTest(unittest.TestCase):
     def test_2_workpool(self):
         """"""
         def test(i):
+            time.sleep(4)
             print('execute onece: {}'.format(i))
             return i
             

@@ -5,7 +5,7 @@
   Purpose: ThreadLabor
   Created: 07/18/17
 """
-from Queue import Empty
+from Queue import Empty, Queue
 import traceback
 from uuid import uuid1
 from threading import Thread
@@ -19,9 +19,9 @@ class ThreadLabor(Thread):
     """"""
 
     #----------------------------------------------------------------------
-    def __init__(self, task_queue, result_sock_addr, error_sock_addr,
-                 poll_interval=500,
-                 debug=False):
+    def __init__(self, result_sock_addr, error_sock_addr,
+                 poll_interval=500, task_table={},
+                 debug=False, task_queue=None):
         """Constructor"""
         self._name = 'Thread_labor-{}'.format(str(uuid1()))
         self._working_flag = True
@@ -35,7 +35,7 @@ class ThreadLabor(Thread):
         #
         # set task queue
         #
-        self._task_queue = task_queue
+        self.task_queue = Queue(1) if not task_queue else task_queue
         
         #
         # set result socket
@@ -62,8 +62,8 @@ class ThreadLabor(Thread):
         #
         while self._working_flag:
             try:
-                _result = self._task_queue.get_nowait()
-            except Empty:
+                _result = self.task_queue.get(block=False)
+            except:
                 self._buzy_flag = False
                 continue                
             
@@ -114,5 +114,10 @@ class ThreadLabor(Thread):
     @property
     def buzy(self):
         """"""
-        return self._buzy_flag
+        return self._buzy_flag or (self.task_queue.qsize() == 1)
     
+    #----------------------------------------------------------------------
+    def feed(self, task):
+        """"""
+        self.task_queue.put(task)
+        

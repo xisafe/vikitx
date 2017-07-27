@@ -9,6 +9,7 @@
 import zmq
 import abc
 import uuid
+import random
 from Queue import Queue
 
 from . import context
@@ -59,11 +60,10 @@ class ThreadPool(PoolBase):
                  debug=False, poll_interval=500):
         """Constructor"""
         self._id = id if id else str(uuid.uuid1())
-        
+    
         #
         # sock address
         #
-        self._task_queue = Queue()
         self._result_addr = 'inproc://{}-result'.format(self._id)
         self._error_addr = 'inproc://{}-error'.format(self._id)
         
@@ -72,6 +72,8 @@ class ThreadPool(PoolBase):
         
         self._pull_error_sock = context.socket(zmq.PULL)
         self._pull_error_sock.bind(self._error_addr)
+        
+        self._task_queue = Queue()
         
         #
         # poller
@@ -140,20 +142,21 @@ class ThreadPool(PoolBase):
         """"""
         task_id = str(uuid.uuid1())
         if self.state == STATE_RUNNING:
-            if self.thread_count < self._max and self.buzy:
+            if self.thread_count < self._max:
                 self.start_new_labor()
             else:
                 if new_labor:
                     self.start_new_labor()
-            
-            self._task_queue.put(self._gen_task(
-                target,
-                args,
-                keywords,
-                task_id=task_id,
-                callback=callback,
-                enable_global_result_callback=enable_global_result_callback
-            ))
+    
+            _task = self._gen_task(
+                        target,
+                        args,
+                        keywords,
+                        task_id=task_id,
+                        callback=callback,
+                        enable_global_result_callback=enable_global_result_callback
+                    )
+            self._task_queue.put_nowait(_task)
         else:
             raise _excs.PoolError('may be you should start pool first')
     
@@ -194,20 +197,33 @@ class ThreadPool(PoolBase):
             #
             # poll and handle result
             #
-            for i in self._poller.poll(self.poll_interval):
+            for i in self._poller.poll(0):
                 if i[0] is self._pull_error_sock:
                     self.handle_error_for_task(self._pull_error_sock.recv_pyojb())
                 elif i[0] is self._pull_result_sock:
                     self.finish_task(self._pull_result_sock.recv_pyobj())
             
-            self.shrink()
+            ##
+            ## handle tasks
+            ##
+            #if self._task_queue.qsize() > 0:
+                #_lbs = [i for i in self._threads if not i.buzy]
+                #if _lbs:
+                    #i = random.choice(_lbs)
+                    #if not i.buzy:
+                        #i.feed(self._task_queue.get())
+                        
+            
+            
+            #self.shrink()
         
     
     #----------------------------------------------------------------------
     def start_new_labor(self):
         """Start new labor"""
-        th = _tlabor.ThreadLabor(self._task_queue, self._result_addr, 
-                                 self._error_addr, debug=self.debug)
+        th = _tlabor.ThreadLabor(self._result_addr, 
+                                 self._error_addr, debug=self.debug,
+                                 task_queue=self._task_queue)
         th.daemon = True
         th.start()
         
@@ -329,8 +345,6 @@ class ThreadPool(PoolBase):
             
         def stop_labor(labor):
             labor.stop()
-            while labor.alive:
-                pass
         
         map(stop_labor, self._threads)
         
