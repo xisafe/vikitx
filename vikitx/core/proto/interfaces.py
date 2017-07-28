@@ -61,6 +61,10 @@ class ServerIf(SendToIf, StateIf, IdentifyIf):
     @abstractproperty
     def state(self):
         """"""
+    
+    @abstractmethod
+    def send_action(self, to, action):
+        """"""    
 
 ########################################################################
 class ClientIf(SendIf, StateIf, IdentifyIf):
@@ -71,6 +75,43 @@ class ClientIf(SendIf, StateIf, IdentifyIf):
     @abstractproperty
     def connect(self):
         """"""
+        
+    
+########################################################################
+class UserClientIf(object):
+    """"""
+    
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def handle_action(self, action):
+        """"""
+        pass
+
+########################################################################
+class UserClientManageIf(object):
+    """"""
+
+    __metaclass__ = ABCMeta
+    
+    @abstractmethod
+    def get_available_clients(self):
+        """Return all id(s) in clients"""
+    
+    @abstractmethod
+    def remove_client(self, client_id):
+        """"""
+    
+    @abstractmethod
+    def get_client_scope(self, client_id):
+        """"""
+        
+        
+        
+        
+    
+    
+        
         
     
     

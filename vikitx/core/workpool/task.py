@@ -37,10 +37,14 @@ class Task(object):
         self.pool = threadpool
 
     #----------------------------------------------------------------------
-    def execute(self):
+    def execute(self, callback=None):
         """"""
+        if callback:
+            assert callable(callback), 'the callback is not a callabled target'
+            
         self.pool.feed(self._callback, self._args, self._keyword,
-                       enable_global_result_callback=False)
+                       enable_global_result_callback=False,
+                       callback=callback)
     
     #----------------------------------------------------------------------
     def regist_threadpool(self, pool):
@@ -48,16 +52,30 @@ class Task(object):
         self.pool = pool
     
     #----------------------------------------------------------------------
-    def call_later(self, interval):
-        """"""
+    def call_later(self, interval, callback=None):
+        """Call after `interval` seconds
+        
+        Parameters:
+        -----------
+        interval: int/floag
+            call after interval seconds
+        
+        callback: function
+            call after the task is called
+        
+        """
         _time = time.time() + interval
+        
+        if callback:
+            assert callable(callback)
         
         self._id = str(uuid.uuid1())
         clock.regist_task(id=self._id, 
                           time=_time, 
                           target=self._callback,
                           v=self._args,
-                          kw=self._keyword)
+                          kw=self._keyword,
+                          callback=callback)
         
         return
     

@@ -157,12 +157,15 @@ class ZSRPSClient(ClientIf):
         #
         self._sock_pub_to_server = context.socket(zmq.PUB)
         self._pub_port = self._sock_pub_to_server.bind_to_random_port('tcp://*')
+        logger.debug('socket pub bind to {}'.format(self.pub_addr))
         
         #
         # build socket to receive instructions from server
         #
         self._sock_rep_to_server = context.socket(zmq.REP)
         self._rep_port = self._sock_rep_to_server.bind_to_random_port('tcp://*')
+        logger.debug('socket rep bind to {}'.format(self.rep_addr))
+        
     
     #----------------------------------------------------------------------
     def __on_receiving_from_server(self):
@@ -217,11 +220,11 @@ class ZSRPSClient(ClientIf):
             # after receving the heartbeat, server will send a Established Signal
             #
             if not self._sock_rep_to_server.poll(1000):
-                logger.debug('rep server poll interval')
                 continue
             
             _est = self._sock_rep_to_server.recv_pyobj()
             if isinstance(_est, packet.Established):
+                self._sock_rep_to_server.send_pyobj(packet.Ack())
                 break
         
         self.state = STATE_SHAKE_HAND_FINISHED
@@ -272,29 +275,26 @@ class ZSRPSClient(ClientIf):
     
         self.state = STATE_WORKING
     
+        self.__main_loop()
         #
         # 2. main loop
         #
-        self.main_loop_thread = thread_utils.start_thread('client-mainloop',
-                                                          True,
-                                                          self.__main_loop)
+        #self.main_loop_thread = thread_utils.start_thread('client-mainloop',
+                                                          #True,
+                                                          #self.__main_loop)
         
     
     #----------------------------------------------------------------------
     def __main_loop(self):
         """"""
         while self.state == STATE_WORKING:
-            _flag = self._sock_rep_to_server.poll(0, flags=zmq.POLLIN|zmq.POLLOUT)
-            if not _flag:
-                continue
-            
-            if _flag & zmq.POLLOUT:
-                while self._response_cache_queue.qsize() > 0:
-                    rsp = self._response_cache_queue.get()
-                    self._sock_rep_to_server.send_pyobj(rsp)
-            elif _flag & zmq.POLLIN:
+            if self._sock_rep_to_server.poll(0, flags=zmq.POLLIN):
                 datapkt = self._sock_rep_to_server.recv_pyobj()
-                self.handle_packet(datapkt)
+                state, extra = self.handle_packet(datapkt)
+                if state:
+                    ack = packet.Ack(extra)
+                else:
+                    failure = packet.Failure(extra)
         
         self.stop_heartbeat()
         self._sock_pub_to_server.send_pyobj(packet.LastHeartbeat(self.id))
@@ -307,9 +307,34 @@ class ZSRPSClient(ClientIf):
         -----------
         pkt: core.proto._packet.DataBase
             the packet you want to handle in this packet
+            
+        Returns:
+        --------
+        state: bool
+            ack or not (Success or Failed)
         
+        extradata: dict
+            the dict has at last 1 key: "extra" for extra data from handle_action
         """
-        print(data)    
+        logger.info('got a message:{}'.format(pkt))
+        self._sock_rep_to_server.send_pyobj(packet.Ack())
+        
+        state = True
+        extradata = {}
+        
+        if hasattr(self, 'handle_action'):
+            _tmp = self.handle_action(pkt)
+            try:
+                state, data = _tmp
+                extradata['extra'] = data
+            except ValueError:
+                extradata['extra'] = _tmp
+                if extradata:
+                    state = False
+            
+        return state, extradata
+        
+                
     
     #----------------------------------------------------------------------
     def stop(self):

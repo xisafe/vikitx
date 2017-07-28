@@ -16,8 +16,10 @@ from . import context
 from . import _packet as packet
 from . import logger
 from . import _keywords
+from . import _excs
 
 from .. import threadpool
+from .. import thread_utils
 from ..interfaces import ServerIf
 
 STATE_INIT = 'init'
@@ -81,27 +83,66 @@ class ZSRPSServer(ServerIf):
         
         self.state = STATE_WORKING
         
+        self._run()
+        #self.mainloop = thread_utils.start_thread('platform:{}-mainloop'.format(id),
+                                                  #True,
+                                                  #target=self._run)
+    
+    #----------------------------------------------------------------------
+    def _run(self):
+        """"""
+        
         #
         # start main loop
         #
         self.__main_loop()
-        
-        
     
     #----------------------------------------------------------------------
-    def sendto(self, to, content):
+    def stop(self):
+        """"""
+        self.state = STATE_FINISHED
+        self.join()
+    
+    #----------------------------------------------------------------------
+    def join(self):
+        """"""
+        self.mainloop.join()
+        
+    #----------------------------------------------------------------------
+    def sendto(self, to, content, timeout=5000):
         """Send Somethon to Client
         
         Parameters
         ----------
         to : client id
             The client id can identify the client.
+            
         content : PyObj(can be pickled)
             The object you want to send to client.
         
         """
-        pass
+        _wrkflw = self.get_workflow(to)
+        assert isinstance(_wrkflw, ZSRPSWorkflow)
+        
+        if _wrkflw.socket.poll(timeout, flags=zmq.POLLOUT):
+            _wrkflw.socket.send_pyobj(content)
+            return _wrkflw.socket.recv_pyobj()
+        else:
+            raise _excs.ZSRPSError('cannot send content to peer client')
     
+    #----------------------------------------------------------------------
+    def send_action(self, client_id, content, timeout=5000):
+        """"""
+        try:
+            logger.info('send a packet:{} to:{}'.format(content, client_id))
+            action_result = self.sendto(client_id, content, timeout)
+            if isinstance(action_result, packet.Failure):
+                return False, action_result.extra
+            else:
+                return True, action_result.extra
+        except _excs.ZSRPSError:
+            logger.error('cannot send content to peer client:{}'.format(client_id))
+            return False, {'extra':'cannot send content to peer client:{}'.format(client_id)}
 
     #
     # priv op
@@ -141,7 +182,7 @@ class ZSRPSServer(ServerIf):
             #
             # poller
             #
-            for sock, _ in self._poller.poll(timeout=1000):
+            for sock, _ in self._poller.poll(0):
                 if self._sock_rep_to_client is sock:
                     self.__handle_negtiation(sock)
                 if self._sock_sub_to_clients is sock:
@@ -201,7 +242,28 @@ class ZSRPSServer(ServerIf):
         logger.debug('Received a hearbeat from: {}'.format(_hb.id))
         
         wkfw = self._clients.get(_hb.id)
-        print(wkfw)
         assert isinstance(wkfw, ZSRPSWorkflow)
         
         wkfw.handle_packet(_hb)
+        
+        #
+        # when received last heartbeat 
+        #
+        if isinstance(_hb, packet.LastHeartbeat):
+            self.finish_workflow(_hb.id)
+            
+    
+    #
+    # manage workflow
+    #
+    #----------------------------------------------------------------------
+    def finish_workflow(self, client_id):
+        """"""
+        _wf = self._clients.get(client_id)
+        if _wf:
+            del self._clients[client_id]
+    
+    #----------------------------------------------------------------------
+    def get_workflow(self, client_id):
+        """"""
+        return self._clients.get(client_id)

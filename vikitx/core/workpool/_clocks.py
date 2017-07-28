@@ -6,7 +6,7 @@
   Created: 07/21/17
 """
 
-
+from collections import defaultdict
 import Queue
 from time import time
 from ._utils import start_thread
@@ -31,7 +31,7 @@ class Clock(object):
         
         self._working_flag = True
         
-        self._tasks = {}
+        self._tasks = defaultdict(dict)
         
         self._cache_queue = Queue.Queue()
         
@@ -85,13 +85,16 @@ class Clock(object):
             
             for _id in filter(_peek_task, self._tasks.keys()):
                 ctpl = self._tasks[_id].get('task')
-                cp, v, kw = ctpl
-                
-                self.pool.feed(cp, v, kw,
-                               enable_global_result_callback=False)
-                
-                if self._tasks[_id].get('time') < self.now:
-                    del self._tasks[_id]
+                callback = self._tasks[_id].get('callback')
+                if ctpl:
+                    cp, v, kw = ctpl
+                    
+                    self.pool.feed(cp, v, kw,
+                                   enable_global_result_callback=False,
+                                   callback=callback)
+                    
+                    if self._tasks[_id].get('time') < self.now:
+                        del self._tasks[_id]
 
     
     #----------------------------------------------------------------------
@@ -107,7 +110,8 @@ class Clock(object):
         self._working_flag = False
     
     #----------------------------------------------------------------------
-    def regist_task(self, id, time, target, v=(), kw={}, interval=None):
+    def regist_task(self, id, time, target, v=(), kw={}, interval=None, 
+                    callback=None):
         """"""
         #
         # regist task
@@ -117,6 +121,7 @@ class Clock(object):
         _['time'] = time
         _['task'] = (target, v, kw)
         _['interval'] = interval
+        _['callback'] = callback
         
         self._cache_queue.put((id, _))
     
@@ -124,5 +129,7 @@ class Clock(object):
     def cancel_task(self, id):
         """"""
         del self._tasks[id]
+
+        
 
 clock = Clock()

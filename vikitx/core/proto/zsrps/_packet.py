@@ -86,9 +86,6 @@ class LastHeartbeat(Hearbeat):
     
     
 
-#
-# pair to pair
-#
 ########################################################################
 class Established(SignalBase):
     """"""
@@ -97,6 +94,35 @@ class Established(SignalBase):
 ########################################################################
 class Ack(SignalBase):
     """"""
+    
+    #----------------------------------------------------------------------
+    def __init__(self, extra={}):
+        """"""
+        assert isinstance(extra, dict)
+        self._extra_dict = extra
+    
+    @property
+    def extra(self):
+        """"""
+        return self._extra_dict
+
+########################################################################
+class Failure(SignalBase):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, extra):
+        """Constructor"""
+        assert isinstance(extra, dict)
+        self._extra = extra
+    
+    @property
+    def extra(self):
+        """"""
+        return self._extra
+        
+    
+    
     
 
 #

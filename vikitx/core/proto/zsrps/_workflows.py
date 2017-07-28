@@ -186,8 +186,7 @@ class ZSRPSWorkflow(Workflow, ScopeAble):
             else:
                 return
             
-            threadpool.feed(self.ack_established,
-                            enable_global_result_callback=False)
+            self.ack_established()
         
     
     #----------------------------------------------------------------------
@@ -196,19 +195,24 @@ class ZSRPSWorkflow(Workflow, ScopeAble):
         try:
             self.req.send_pyobj(_packet.Established())
             
+            logger.info('prepare to ack established signal')
             while True:
                 if self.get_env(_keywords.NEGOTIATION_LEASE) < time.time():
+                    logger.info('lease:{} now:{}'.format(self.get_env(_keywords.NEGOTIATION_LEASE,),
+                                                   time.time()))
                     self.state = state_TIMEOUT
-                    break
+                    return 
                 
-                if self.req.poll():
+                if self.req.poll(0):
                     logger.debug('Got Established ACK')
                     _ack = self.req.recv_pyobj()
                     break
             
+            logger.info('the control channel established!')
             self.state = state_SHAKEHAND_FINISHED
             self.state = state_WORKING
         except zmq.ZMQError:
+            logger.error('zmq error cannot establish ack')
             self.state = state_ERROR
         
     
@@ -224,3 +228,11 @@ class ZSRPSWorkflow(Workflow, ScopeAble):
     def update(self):
         """"""
         self.set_env(_keywords.UPDATE_TIME, time.time())
+    
+    @property
+    def socket(self):
+        """"""
+        if hasattr(self, 'req'):
+            return self.req
+        else:
+            return False
