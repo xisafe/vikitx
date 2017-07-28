@@ -57,6 +57,12 @@ class ZSRPSClient(ClientIf):
         #
         self._response_cache_queue = Queue.Queue()
         
+        #
+        # scope recording
+        #
+        self._scope = {}
+        
+        
     @property
     def id(self):
         """"""
@@ -106,9 +112,15 @@ class ZSRPSClient(ClientIf):
         
         #
         # update heartbeat info
-        #
+        #        
+        _hb.scope = self.scope
         
         return _hb
+    
+    @property
+    def scope(self):
+        """"""
+        return self._scope
     
     #
     # basic op
@@ -349,3 +361,21 @@ class ZSRPSClient(ClientIf):
         """"""
         self.main_loop_thread.join()
     
+    #----------------------------------------------------------------------
+    def set_scope_value(self, key, value):
+        """"""
+        self._scope[key] = value
+    
+    #----------------------------------------------------------------------
+    def del_scope_value(self, key):
+        """"""
+        if self._scope.has_key(key):
+            del self._scope[key]
+        else:
+            pass
+    
+    #----------------------------------------------------------------------
+    def get_scope_value(self, key):
+        """"""
+        return self._scope.get(key)
+        

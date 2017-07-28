@@ -74,11 +74,23 @@ class Hearbeat(SignalBase):
     def __init__(self, client_id):
         """Constructor"""
         self._id = client_id
+        self._scope = {}
         
     @property
     def id(self):
         """"""
         return self._id
+
+    @property
+    def scope(self):
+        """"""
+        return self._scope
+    
+    @scope.setter
+    def scope(self, scope):
+        """"""
+        self._scope = scope
+    
         
 ########################################################################
 class LastHeartbeat(Hearbeat):

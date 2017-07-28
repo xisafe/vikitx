@@ -50,6 +50,11 @@ class ScopeAble(object):
     def get_env(self, key):
         """"""
         return self.scope.get(key)
+    
+    #----------------------------------------------------------------------
+    def update_scope(self, scope):
+        """"""
+        self._scope.update(scope)
         
         
     
@@ -94,6 +99,11 @@ class ZSRPSWorkflow(Workflow, ScopeAble):
         # shaking hand lock
         #
         self._lock_shaking_hand = False
+        
+        #
+        # scope
+        #
+        self._scope = {}
         
     @property
     def id(self):
@@ -143,7 +153,7 @@ class ZSRPSWorkflow(Workflow, ScopeAble):
         #
         # process heartbeat
         #
-        pass
+        self.update_scope(hb_pkt.scope)
     
     #----------------------------------------------------------------------
     def __handle_first_packet(self, pkt):

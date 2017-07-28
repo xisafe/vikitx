@@ -31,11 +31,11 @@ class ZSRPSServer(ServerIf):
     """"""
 
     #----------------------------------------------------------------------
-    def __init__(self, id, addr='tcp://*'):
+    def __init__(self, id, addr='tcp://*', port=7000):
         """Constructor"""
         self._id = id
         self._state = STATE_INIT
-        self._port = 7000
+        self._port = 7000 if not port else port
         self._addr = addr
         
         #

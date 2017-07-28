@@ -13,13 +13,27 @@ class ZServerBase(interfaces.UserClientManageIf, ZSRPSServer):
     
     Methods:
     --------
-
-    get_available_clients():
+    def get_available_clients():
         get ids of available cliends
     
-    remove_client(client_id):
+    def remove_client(client_id):
         remove client by id
     
-    get_client_scope(client_id):
+    def get_client_scope(client_id):
         get information about client
     """
+
+########################################################################
+class ZClientBase(interfaces.UserClientIf, ZSRPSClient):
+    """
+    
+    Methods:
+    --------
+    def handle_action(action):
+        handle action and return information, if the action execute error,
+        you should return a state and extrainfomation(optional)::
+            return state, extra
+    
+    """
+    
+    
