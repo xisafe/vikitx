@@ -11,8 +11,9 @@ import os
 
 from vikitx.exts import gitsyncer
 from vikitx.exts.gitsyncer import start_git_server, stop_git_server
+from vikitx.exts.gitsyncer import gitclient
 
-CURRENT_DIR = os.path.abspath(__file__)
+CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 BASE_DIR = os.path.join(CURRENT_DIR, 'vikitx/')
 
 ########################################################################
@@ -34,7 +35,8 @@ class GitSyncerTester(unittest.TestCase):
     #----------------------------------------------------------------------
     def test_add_pubkeys(self):
         """"""
-        private = gitsyncer.gen_and_add_keypair(once=True)   
+        private = gitsyncer.gen_and_add_keypair(once=True)
+        gitclient.gitsyn(target_dir='./testrepos')
     
     #----------------------------------------------------------------------
     def test_z_stop_server(self):
