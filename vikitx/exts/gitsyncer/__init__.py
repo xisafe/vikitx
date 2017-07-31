@@ -7,4 +7,5 @@
 """
 
 from ._docker_manager import start_git_server, stop_git_server
+from ._docker_manager import gen_and_add_keypair, get_key, clear_all_public_key
 from . import _gitclient as gitclient

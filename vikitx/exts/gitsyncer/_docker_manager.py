@@ -43,8 +43,7 @@ def start_git_server(container_name=DEFAULT_CONTAINER_NAME,
     RP_DIR = os.path.join(base_dir, git_dirname)
     
     client = docker.from_env()
-    print(PK_DIR)
-    print(RP_DIR)
+
     #
     # build or find image
     #
@@ -79,9 +78,28 @@ def start_git_server(container_name=DEFAULT_CONTAINER_NAME,
 #----------------------------------------------------------------------
 def gen_and_add_keypair():
     """"""
+
+#----------------------------------------------------------------------
+def clear_all_public_key():
+    """"""
+
+#----------------------------------------------------------------------
+def get_key():
+    """"""
+    
+    
     
 
 #----------------------------------------------------------------------
-def stop_git_server():
+def stop_git_server(container_name=DEFAULT_CONTAINER_NAME):
     """"""
+    client = docker.from_env()
     
+    #
+    # stop container
+    #
+    try:
+        container = client.containers.get(container_name)
+        container.stop(timeout=0)
+    except docker.errors.NotFound:
+        warnings.warn('no git server containner is running!')
