@@ -75,9 +75,14 @@ class Ackpool(object):
         self._timeout_callback = callback
     
     #----------------------------------------------------------------------
-    def add(self, token, packet, interval=5, count=3):
+    def add(self, token, packet, interval=5, count=3, send_callback=None):
         """"""
-        new_task = AckTask(token, self._common_callback, args=(packet, ),
+        if send_callback:
+            callback = send_callback
+        else:
+            callback = self._common_callback
+            
+        new_task = AckTask(token, callback, args=(packet, ),
                            loop_interval=interval, count=count)
         
         self._tasks[new_task.id] = new_task
@@ -89,9 +94,6 @@ class Ackpool(object):
             try:
                 del self._tasks[token]
             except:
-                pass
-            
-            if not self._tasks.has_key(token):
                 break
 
     #----------------------------------------------------------------------
