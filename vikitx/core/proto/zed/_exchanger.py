@@ -305,6 +305,8 @@ class Exchanger(object):
         """"""
         print('stop intruction setting')
         fsm.action(action_SHUTDOWN)
+        
+        self.ackpool.stop()
     
     #----------------------------------------------------------------------
     def handle_timeout_message(self, token, packet):

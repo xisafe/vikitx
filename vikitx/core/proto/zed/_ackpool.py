@@ -36,6 +36,7 @@ class Ackpool(object):
         self._count = count
         
         self.pool = _Ackpool()
+        self.pool.start()
         
         self._timeout_callback = timeout_callback if timeout_callback \
             else self.timeout_callback
@@ -69,4 +70,8 @@ class Ackpool(object):
             self._timeout_callback(pkt.token, pkt)
         else:
             warnings.warn('the packet is timeout, but no timeout_callback called!')
-        
+    
+    #----------------------------------------------------------------------
+    def stop(self):
+        """"""
+        self.pool.stop()
