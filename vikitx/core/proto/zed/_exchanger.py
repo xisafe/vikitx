@@ -249,6 +249,8 @@ class Exchanger(object):
                     # finish
                     #
                     self.ackpool.ack(acksig.token)
+                    
+                    sock.send_pyobj(Ack(acksig.token))
                     self.finish_message(acksig.token)
                 elif sock in self.esocks and flag & zmq.POLLIN:
                     #
@@ -280,7 +282,8 @@ class Exchanger(object):
 
                 sock = self.get_router_sock(_msg.routing_key)
                 assert isinstance(sock, zmq.Socket)
-                if sock.poll(zmq.POLLOUT):
+                
+                if sock.poll(timeout=100, flags=zmq.POLLOUT):
                     sock.send_pyobj(_msg.message)
                     if _msg.token == '':
                         pass

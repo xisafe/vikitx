@@ -7,3 +7,4 @@
 """
 
 from ._exchanger import Exchanger
+from ._clients import ZConsumer, ZProducer

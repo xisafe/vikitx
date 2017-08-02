@@ -10,6 +10,7 @@ import zmq
 import abc
 import warnings
 
+from . import _utils as utils
 from ._signal import Ack, Failed
 
 ########################################################################
@@ -29,10 +30,9 @@ class ZProducer(_ClientIf):
         self._host = host
         
         self.context = context if context else zmq.Context()
-        assert isinstance(self.context, zmq.Context)
         
         self._sock = self.context.socket(zmq.REQ)
-        self._sock.connect('ftp://{}:{}'.format(self._host, self._target_port))
+        self._sock.connect('tcp://{}:{}'.format(self._host, self._target_port))
         
     #----------------------------------------------------------------------
     def send(self, routing_key, msg, timeout=10000):
@@ -82,7 +82,6 @@ class ZConsumer(_ClientIf):
         self._ack_addr = 'tcp://{}:{}'.format(self._host, self._ack_port)
         
         self.context = context if context else zmq.Context()
-        assert isinstance(context, zmq.Context)
         
         self._sock_to_router = self.context.socket(zmq.PULL)
         self._sock_to_router.connect(self._router_addr)
@@ -96,13 +95,14 @@ class ZConsumer(_ClientIf):
         if self._sock_to_router.poll(timeout=timeout):
             _pkt = self._sock_to_router.recv_pyobj()
             if self._sock_to_ack.poll(timeout, zmq.POLLOUT):
-                self._sock_to_ack.send_pyobj(Ack(_pkt.token))
+                self._sock_to_ack.send_pyobj(Ack(utils.get_item_or_attr(_pkt, 'token')))
                 if self._sock_to_ack.poll(timeout):
-                    self._sock_to_ack.recv_pyobj()
+                    self._sock_to_ack.recv_pyobj()                   
                 else:
-                    ValueError('recv a packet but i donot know whether the packet is acked')
+                    warnings.warn('recv a packet but i donot know whether the packet is acked')        
+                return _pkt
             else:
-                ValueError('cannot ack!')
+                raise ValueError('cannot ack!')
                 
         else:
             raise ValueError('cannot recv a packet from router')

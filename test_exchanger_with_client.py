@@ -25,15 +25,16 @@ class ExchangerWithClients(unittest.TestCase):
         exchanger.start()
         
         p = ZProducer(host='127.0.0.1', target_port=1234)
-        self.assertTrue(p.send({'routing_key':'test',
-                                'message':{'token':'adfadfadfsadf',
-                                           'testasdfasdf':{1:345}}}))
+        self.assertTrue(p.send('test', {'token':'this is a fake token',
+                                        'message':{'token':'adfadfadfsadf',
+                                                   'testasdfasdf':{1:345}}}))
         
-        r = ZConsumer(host='127.0.0.1', router_port=2345, ack_port=4567)
-        r.poll(timeout=1000)
-        self.assertIsInstance(r.recv(), dict)
+
         
         time.sleep(4)
+        
+        r = ZConsumer(host='127.0.0.1', router_port=2345, ack_port=4567)
+        self.assertIsInstance(r.recv(), dict)        
         
         exchanger.stop()
         

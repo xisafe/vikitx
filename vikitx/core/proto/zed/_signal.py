@@ -25,6 +25,12 @@ class Ack(SignalBase):
         """"""
         return self._token
     
+    @property
+    def token(self):
+        """"""
+        return self._token
+    
+    
 ########################################################################
 class Failed(SignalBase):
     """"""
@@ -36,6 +42,11 @@ class Failed(SignalBase):
         
     @property
     def id(self):
+        """"""
+        return self._token
+    
+    @property
+    def token(self):
         """"""
         return self._token
         
