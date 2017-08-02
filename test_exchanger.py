@@ -30,7 +30,8 @@ class ExchangerTester(unittest.TestCase):
         sock.connect('tcp://127.0.0.1:9001')
         sock.send_pyobj({'routing_key':'testkey',
                         'message':{'this':'is a test message!',
-                                   'token':'adfasdfadfas'}})
+                                   'token':''}})
+        
         print('TEEEEST RECVED FROM : {}'.format(sock.recv_pyobj()))
         
         #
@@ -40,9 +41,8 @@ class ExchangerTester(unittest.TestCase):
         _t.call_later(5)
         
         exchanger.join()
-        
-        
-        
+
+
     
     
 
