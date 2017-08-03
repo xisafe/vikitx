@@ -20,9 +20,13 @@ class ExchangerWithClients(unittest.TestCase):
     def test_exchanger_with_client(self):
         """"""
         exchanger = Exchanger('exchangerme', backend_port=4567)
+        exchanger.start()
+        
+        time.sleep(2)
+        
         exchanger.regist_entry(1234)
         exchanger.regist_router('test', 2345)
-        exchanger.start()
+        
         
         p = ZProducer(host='127.0.0.1', target_port=1234)
         self.assertTrue(p.send('test', {'token':'this is a fake token',

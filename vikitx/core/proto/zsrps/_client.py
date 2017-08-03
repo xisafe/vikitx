@@ -287,13 +287,13 @@ class ZSRPSClient(ClientIf):
     
         self.state = STATE_WORKING
     
-        self.__main_loop()
+        #self.__main_loop()
         #
         # 2. main loop
         #
-        #self.main_loop_thread = thread_utils.start_thread('client-mainloop',
-                                                          #True,
-                                                          #self.__main_loop)
+        self.main_loop_thread = thread_utils.start_thread('client-mainloop',
+                                                          True,
+                                                          self.__main_loop)
         
     
     #----------------------------------------------------------------------

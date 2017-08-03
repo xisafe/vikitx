@@ -16,6 +16,12 @@ class SNClient(ZClientBase):
 
     __handle_action_table = {
     }
+    
+    #----------------------------------------------------------------------
+    def __init__(self, id, host):
+        """"""
+        ZClientBase.__init__(self, id, host)
+        
 
     #----------------------------------------------------------------------
     def handle_action(self, action):

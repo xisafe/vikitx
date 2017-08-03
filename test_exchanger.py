@@ -21,9 +21,10 @@ class ExchangerTester(unittest.TestCase):
         """"""
         routing_key = 'testkey'
         exchanger = Exchanger(id='exchanger', host='127.0.0.1', backend_port=3424)
+        exchanger.start()
         exchanger.regist_entry(9001)
         exchanger.regist_router(routing_key, 9002)
-        exchanger.start()
+        
         
         ctx = zmq.Context()
         sock = ctx.socket(zmq.REQ)

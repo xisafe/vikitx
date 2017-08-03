@@ -179,8 +179,7 @@ class Exchanger(object):
             return None
         else:
             return self.__cache_queue.get_nowait()
-    
-    @fsm.onstate(state_INIT)    
+        
     def regist_entry(self, port):
         """"""
         #
@@ -197,8 +196,7 @@ class Exchanger(object):
         _entry = Entry(port, sock)
     
         self.entries[port] = _entry
-    
-    @fsm.onstate(state_INIT)    
+        
     def regist_router(self, routing_key, port):
         """"""
         #

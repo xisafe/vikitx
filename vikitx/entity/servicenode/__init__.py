@@ -6,4 +6,5 @@
   Created: 07/27/17
 """
 
-from ._servicenode import ServiceNode
+from ._servicenode import ServiceNode, ServiceNodeConfig
+from ._phoenix import Phoenix
