@@ -17,12 +17,12 @@ class TaskReceiver(object):
         """"""
         self._context = context
         
-        self._tables = {}
+        self._socket_map_comsumer = {}
     
     #----------------------------------------------------------------------
-    def regist_receiver(self, index, host, router_port, ack_port):
+    def regist_receiver(self, host, router_port, ack_port):
         """"""
         comsumer = zed.ZConsumer(host, router_port, ack_port, self._context)
-        self._tables[index] = comsumer
+        self._tables[comsumer.router_socket] = comsumer
     
     
