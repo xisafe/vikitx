@@ -225,6 +225,11 @@ class Exchanger(object):
         """"""
         fsm.action(action_START)
         
+        #
+        # start ackpool
+        #
+        self.ackpool.start()
+        
         self.__thread_mainloop = thread_utils.start_thread('{}-mainloop'.format(self.id),
                                                            True,
                                                            self.__mainloop,)

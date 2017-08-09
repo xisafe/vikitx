@@ -8,3 +8,4 @@
 
 from ._exchanger import Exchanger
 from ._clients import ZConsumer, ZProducer
+from ._enxer import Enxer

@@ -41,10 +41,6 @@ class ExchangerWithClients(unittest.TestCase):
         self.assertIsInstance(r.recv(), dict)        
         
         exchanger.stop()
-        
-        
-        
-    
     
 
 if __name__ == '__main__':

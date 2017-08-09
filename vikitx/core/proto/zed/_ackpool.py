@@ -36,7 +36,7 @@ class Ackpool(object):
         self._count = count
         
         self.pool = _Ackpool()
-        self.pool.start()
+
         
         self._timeout_callback = timeout_callback if timeout_callback \
             else self.timeout_callback
@@ -75,3 +75,8 @@ class Ackpool(object):
     def stop(self):
         """"""
         self.pool.stop()
+        
+    #----------------------------------------------------------------------
+    def start(self):
+        """"""
+        self.pool.start()    
